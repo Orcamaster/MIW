@@ -1,24 +1,26 @@
 import math
+import random
 
-file = open("iris.txt", 'r')
+iris_dane = []
+with open("iris.txt", 'r') as plik:
+    for linia in plik:
+        dane = linia.rstrip().split(',')
+        iris_dane.append([float(x) if x in dane[:4] else x for x in dane])
 
-sys_tren = {}
-sys_test = {}
-prawd_klas = {}
-stat_klas = {}
 
-i = 1
-for linia in file.readlines():
-    dane = linia.rstrip().split(',')
-    if i <= 30:
-        if dane[4] not in sys_test:
-            sys_test[dane[4]] = []
-        sys_test[dane[4]].append([float(x) for x in dane[:4]])
-    else:
-        if dane[4] not in sys_tren:
-            sys_tren[dane[4]] = []
-        sys_tren[dane[4]].append([float(x) for x in dane[:4]])
-    i += 1
+def kroswalidacja(zbior, f):
+    zbior_przetasowany = zbior
+    random.shuffle(zbior_przetasowany)
+
+    podzial = []
+    fold_len = len(zbior) // f
+
+    for fold in range(f):
+        podzbior = []
+        for i in range(fold * fold_len, fold_len * (fold + 1)):
+            podzbior.append(zbior_przetasowany[i])
+        podzial.append(podzbior)
+    return podzial  # lista wszystkich foldów
 
 
 def srednia(zbior):
@@ -32,27 +34,30 @@ def wariancja(zbior):
 
     for x in zbior:
         sum_x += (x - sr) ** 2
-
     return (1 / n) * sum_x
 
 
 def p_c(sys):
     """Obliczanie P(A) dla każdej klasy"""
+    prawdopodobienstwa = {}
     for klasa in sys:
-        prawd_klas[klasa] = round(len(sys[klasa]) / 120, 3)
+        prawdopodobienstwa[klasa] = len(sys[klasa]) / len(sys)
+    return prawdopodobienstwa
 
 
 def srednie_i_wariancje(sys):
     """Obliczanie średniej i wariancji dla każdego atrybutu"""
+    statystyki = {}
     for klasa, obiekt in sys.items():
         for i in range(4):
-            wartosci = [float(x[i]) for x in obiekt]  # Lista wartości dla obecnego atrybutu
-            sr = round(srednia(wartosci), 3)
-            war = round(wariancja(wartosci), 3)
+            wartosci = [x[i] for x in obiekt]  # Lista wartości dla obecnego atrybutu
+            sr = srednia(wartosci)
+            war = wariancja(wartosci)
 
-            if klasa not in stat_klas:
-                stat_klas[klasa] = []
-            stat_klas[klasa].append((sr, war))
+            if klasa not in statystyki:
+                statystyki[klasa] = []
+            statystyki[klasa].append((sr, war))
+    return statystyki
 
 
 def p_aic(atrybut, sr, war):
@@ -62,36 +67,60 @@ def p_aic(atrybut, sr, war):
     return ulamek * potega_e
 
 
-def sumy_logarytmow(prawdopodobienstwa, statystyki):
+def sumy_logarytmow(sys, prawdopodobienstwa, statystyki):
     predykcje = []
-    for klasa_test in sys_test:  # Przejście przez klucze (klasy)
-        for obiekt in sys_test[klasa_test]:  # Przejście przez wartości kluczy (obiekty)
-            wynik = {}  # Sumy
+    for klasa_test in sys:  # Przejście przez klucze (klasy) do rozpakowania obiektów
+        for obiekt in sys[klasa_test]:  # Przejście przez wartości kluczy (obiekty)
+            wyniki = {}  # Klasy i ich sumy
 
             for klasa in prawdopodobienstwa:
                 suma = math.log(prawdopodobienstwa[klasa])  # ln(P(C))
                 stat = statystyki[klasa]  # Wczytanie statystyk aktualnej klasy
 
                 for i in range(4):
-                    srednia = stat[i][0]
-                    wariancja = stat[i][1]
+                    sr, war = stat[i]
+                    suma += math.log(p_aic(obiekt[i], sr, war))
+                wyniki[klasa] = suma
 
-                    suma += math.log(p_aic(obiekt[i], srednia, wariancja))
+            predykcja = max(wyniki, key=wyniki.get)  # Zwraca klucz o największej wartości
 
-                wynik[klasa] = suma
+            if predykcja == klasa_test:
+                print(f'C: {klasa_test}, P: \033[32m{predykcja}\033[0m')
+                predykcje.append(1)  # Poprawna
+            else:
+                print(f'C: {klasa_test}, P: \033[31m{predykcja}\033[0m')
+                predykcje.append(0)  # Niepoprawna
 
-            predykcje.append(max(wynik, key=wynik.get))
+    accuracy = sum(predykcje) / len(predykcje)
+    return accuracy
 
-    return predykcje
+
+def uruchom_algorytm(x):
+    foldy = kroswalidacja(iris_dane, x)
+    accuracies = []
+
+    for i in range(x):
+        sys_tren = {}
+        sys_test = {}
+
+        for fold in foldy:
+            for obiekt in fold:
+                if foldy.index(fold) == i:
+                    if obiekt[4] not in sys_test:
+                        sys_test[obiekt[4]] = []
+                    sys_test[obiekt[4]].append([x for x in obiekt[:4]])
+                else:
+                    if obiekt[4] not in sys_tren:
+                        sys_tren[obiekt[4]] = []
+                    sys_tren[obiekt[4]].append([x for x in obiekt[:4]])
+
+        prawdopodobienstwa_klas = p_c(sys_tren)
+        statystyki_klas = srednie_i_wariancje(sys_tren)
+        accuracies.append(sumy_logarytmow(sys_test, prawdopodobienstwa_klas, statystyki_klas))
+
+    final_accuracy = sum(accuracies) / len(accuracies)
+    print(accuracies)
+    print(final_accuracy)
 
 
-srednie_i_wariancje(sys_tren)
-# print(stat_klas)
-
-p_c(sys_tren)
-# print(prawd_klas)
-
-sumy_logarytmow(prawd_klas, stat_klas)
-
-# TODO: accuracy = poprawne predykcje / liczba próbek zbioru testowego
-# TODO: kroswalidacja (5 foldów)
+uruchom_algorytm(5)
