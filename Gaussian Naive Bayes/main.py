@@ -62,8 +62,8 @@ def srednie_i_wariancje(sys):
 
 def p_aic(atrybut, sr, war):
     """Obliczanie P(ai | C)"""
-    ulamek = 1 / ((2 * math.pi * (war ** 2)) ** (1 / 2))
-    potega_e = math.exp(-(atrybut - sr) ** 2) / (2 * (war ** 2))
+    ulamek = 1 / ((2 * math.pi * war) ** (1 / 2))
+    potega_e = math.exp(-((atrybut - sr) ** 2) / (2 * war))
     return ulamek * potega_e
 
 
