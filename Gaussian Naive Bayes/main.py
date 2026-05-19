@@ -20,7 +20,7 @@ def kroswalidacja(zbior, f):
         for i in range(fold * fold_len, fold_len * (fold + 1)):
             podzbior.append(zbior_przetasowany[i])
         podzial.append(podzbior)
-    return podzial  # lista wszystkich foldów
+    return podzial
 
 
 def srednia(zbior):
@@ -68,6 +68,7 @@ def p_aic(atrybut, sr, war):
 
 
 def sumy_logarytmow(sys, prawdopodobienstwa, statystyki):
+    """Obliczanie sum i predykowanie klas"""
     predykcje = []
     for klasa_test in sys:  # Przejście przez klucze (klasy) do rozpakowania obiektów
         for obiekt in sys[klasa_test]:  # Przejście przez wartości kluczy (obiekty)
@@ -82,13 +83,13 @@ def sumy_logarytmow(sys, prawdopodobienstwa, statystyki):
                     suma += math.log(p_aic(obiekt[i], sr, war))
                 wyniki[klasa] = suma
 
-            predykcja = max(wyniki, key=wyniki.get)  # Zwraca klucz o największej wartości
+            predykcja = max(wyniki, key=wyniki.get)
 
             if predykcja == klasa_test:
-                print(f'C: {klasa_test}, P: \033[32m{predykcja}\033[0m')
+                # print(f'C: {klasa_test}, P: \033[32m{predykcja}\033[0m')
                 predykcje.append(1)  # Poprawna
             else:
-                print(f'C: {klasa_test}, P: \033[31m{predykcja}\033[0m')
+                # print(f'C: {klasa_test}, P: \033[31m{predykcja}\033[0m')
                 predykcje.append(0)  # Niepoprawna
 
     accuracy = sum(predykcje) / len(predykcje)
@@ -96,8 +97,8 @@ def sumy_logarytmow(sys, prawdopodobienstwa, statystyki):
 
 
 def uruchom_algorytm(x):
-    foldy = kroswalidacja(iris_dane, x)
     accuracies = []
+    foldy = kroswalidacja(iris_dane, 5)
 
     for i in range(x):
         sys_tren = {}
