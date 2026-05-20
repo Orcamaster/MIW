@@ -2,21 +2,19 @@ from itertools import combinations
 
 sys = []
 with open("plik.txt", "r") as plik:
-    index = 1
     for linia in plik:
-        ob = {'ob': f'{id}'}
+        ob = {}
         dane = [int(x) for x in linia.strip().split()]
         for x in range(len(dane) - 1):
             ob[f'A{x + 1}'] = dane[x]
         ob['D'] = dane[-1]
         sys.append(ob)
-        index += 1
 
 
 def sequential_covering(system):
     reguly = {}
     niepokryte = system.copy()
-    ilosc_atrybutow = len(system[0]) - 2
+    ilosc_atrybutow = len(system[0]) - 1
 
     atrybuty = []
     for i in range(ilosc_atrybutow):
