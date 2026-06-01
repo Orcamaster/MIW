@@ -1,11 +1,11 @@
-import math
 import random
+import math
 
-iris_dane = []
+iris = []
 with open("iris.txt", 'r') as plik:
     for linia in plik:
         dane = linia.rstrip().split(',')
-        iris_dane.append([float(x) if x in dane[:4] else x for x in dane])
+        iris.append([float(x) if x in dane[:4] else x for x in dane])
 
 
 def kroswalidacja(zbior, f):
@@ -23,6 +23,55 @@ def kroswalidacja(zbior, f):
     return podzial
 
 
+def wybierz_systemy(podzial, test_index):
+    sys_test = podzial[test_index]
+    sys_tren = []
+    for i in range(len(podzial)):
+        if i == test_index:
+            continue
+        for fold in podzial[i]:
+            sys_tren.append(fold)
+
+    return sys_test, sys_tren
+
+
+def macierz_pomylek(predykcje, prawdziwe):
+    n = len(predykcje)
+
+    #    set ver vir
+    mp = [[0, 0, 0],  # set
+          [0, 0, 0],  # ver
+          [0, 0, 0]]  # vir
+
+    for x in range(n):
+        if predykcje[x] == 'Iris-setosa':
+            if prawdziwe[x] == 'Iris-setosa':
+                mp[0][0] += 1
+            elif prawdziwe[x] == 'Iris-versicolor':
+                mp[0][1] += 1
+            elif prawdziwe[x] == 'Iris-virginica':
+                mp[0][2] += 1
+        if predykcje[x] == 'Iris-versicolor':
+            if prawdziwe[x] == 'Iris-setosa':
+                mp[1][0] += 1
+            elif prawdziwe[x] == 'Iris-versicolor':
+                mp[1][1] += 1
+            elif prawdziwe[x] == 'Iris-virginica':
+                mp[1][2] += 1
+        if predykcje[x] == 'Iris-virginica':
+            if prawdziwe[x] == 'Iris-setosa':
+                mp[2][0] += 1
+            elif prawdziwe[x] == 'Iris-versicolor':
+                mp[2][1] += 1
+            elif prawdziwe[x] == 'Iris-virginica':
+                mp[2][2] += 1
+
+    print("               R. Setosa  R. Versicolor  R. Virginica")
+    print(f'P.     Setosa {mp[0][0]:10} {mp[0][1]:14} {mp[0][2]:13}')
+    print(f'P. Versicolor {mp[1][0]:10} {mp[1][1]:14} {mp[1][2]:13}')
+    print(f'P.  Virginica {mp[2][0]:10} {mp[2][1]:14} {mp[2][2]:13}')
+
+
 def srednia(zbior):
     return sum(zbior) / len(zbior)
 
@@ -34,19 +83,19 @@ def wariancja(zbior):
 
     for x in zbior:
         sum_x += (x - sr) ** 2
+
     return (1 / n) * sum_x
 
 
-def p_c(sys):
-    """Obliczanie P(A) dla każdej klasy"""
+def policz_pc(sys):
+    # P(A)
     prawdopodobienstwa = {}
     for klasa in sys:
         prawdopodobienstwa[klasa] = len(sys[klasa]) / len(sys)
     return prawdopodobienstwa
 
 
-def srednie_i_wariancje(sys):
-    """Obliczanie średniej i wariancji dla każdego atrybutu"""
+def policz_srednie_i_wariancje(sys):
     statystyki = {}
     for klasa, obiekt in sys.items():
         for i in range(4):
@@ -60,16 +109,17 @@ def srednie_i_wariancje(sys):
     return statystyki
 
 
-def p_aic(atrybut, sr, war):
-    """Obliczanie P(ai | C)"""
+def policz_paic(atrybut, sr, war):
+    # P(ai | C)
     ulamek = 1 / ((2 * math.pi * war) ** (1 / 2))
     potega_e = math.exp(-((atrybut - sr) ** 2) / (2 * war))
     return ulamek * potega_e
 
 
-def sumy_logarytmow(sys, prawdopodobienstwa, statystyki):
-    """Obliczanie sum i predykowanie klas"""
-    predykcje = []
+def predykuj_klasy(sys, prawdopodobienstwa, statystyki):
+    predykowane_klasy = []
+    prawdziwe_klasy = []
+
     for klasa_test in sys:  # Przejście przez klucze (klasy) do rozpakowania obiektów
         for obiekt in sys[klasa_test]:  # Przejście przez wartości kluczy (obiekty)
             wyniki = {}  # Klasy i ich sumy
@@ -80,48 +130,65 @@ def sumy_logarytmow(sys, prawdopodobienstwa, statystyki):
 
                 for i in range(4):
                     sr, war = stat[i]
-                    suma += math.log(p_aic(obiekt[i], sr, war))
+                    suma += math.log(policz_paic(obiekt[i], sr, war))
                 wyniki[klasa] = suma
 
             predykcja = max(wyniki, key=wyniki.get)
 
-            if predykcja == klasa_test:
-                # print(f'C: {klasa_test}, P: \033[32m{predykcja}\033[0m')
-                predykcje.append(1)  # Poprawna
-            else:
-                # print(f'C: {klasa_test}, P: \033[31m{predykcja}\033[0m')
-                predykcje.append(0)  # Niepoprawna
+            predykowane_klasy.append(predykcja)
+            prawdziwe_klasy.append(klasa_test)
 
-    accuracy = sum(predykcje) / len(predykcje)
-    return accuracy
+    return predykowane_klasy, prawdziwe_klasy
+
+
+def policz_accuracy(predykcje, prawdziwe):
+    n = len(predykcje)
+    suma = 0
+
+    for x in range(n):
+        if predykcje[x] == prawdziwe[x]:
+            suma += 1
+
+    return (suma / n) * 100
 
 
 def uruchom_algorytm(x):
-    accuracies = []
-    foldy = kroswalidacja(iris_dane, 5)
+    kros = kroswalidacja(iris, 5)
+    wszystkie_predykcje = []
+    wszystkie_prawdziwe = []
 
-    for i in range(x):
+    for iteracja in range(x):
+        test, tren = wybierz_systemy(kros, iteracja)
         sys_tren = {}
         sys_test = {}
 
-        for fold in foldy:
-            for obiekt in fold:
-                if foldy.index(fold) == i:
-                    if obiekt[4] not in sys_test:
-                        sys_test[obiekt[4]] = []
-                    sys_test[obiekt[4]].append([x for x in obiekt[:4]])
-                else:
-                    if obiekt[4] not in sys_tren:
-                        sys_tren[obiekt[4]] = []
-                    sys_tren[obiekt[4]].append([x for x in obiekt[:4]])
+        for obiekt in tren:
+            klasa = obiekt[4]
 
-        prawdopodobienstwa_klas = p_c(sys_tren)
-        statystyki_klas = srednie_i_wariancje(sys_tren)
-        accuracies.append(sumy_logarytmow(sys_test, prawdopodobienstwa_klas, statystyki_klas))
+            if klasa not in sys_tren:
+                sys_tren[klasa] = []
+            sys_tren[klasa].append(obiekt[:4])
 
-    final_accuracy = sum(accuracies) / len(accuracies)
-    print(accuracies)
-    print(final_accuracy)
+        for obiekt in test:
+            klasa = obiekt[4]
+
+            if klasa not in sys_test:
+                sys_test[klasa] = []
+            sys_test[klasa].append(obiekt[:4])
+
+        prawdopodobienstwa_klas = policz_pc(sys_tren)
+        statystyki_klas = policz_srednie_i_wariancje(sys_tren)
+
+        predykcje, prawdziwe = predykuj_klasy(sys_test, prawdopodobienstwa_klas, statystyki_klas)
+        accuracy = policz_accuracy(predykcje, prawdziwe)
+        print(f'{iteracja + 1}: {round(accuracy, 2)}%')
+
+        wszystkie_predykcje.extend(predykcje)
+        wszystkie_prawdziwe.extend(prawdziwe)
+
+    total_accuracy = policz_accuracy(wszystkie_predykcje, wszystkie_prawdziwe)
+    print(f'Total: {round(total_accuracy, 2)}%\n')
+    macierz_pomylek(wszystkie_predykcje, wszystkie_prawdziwe)
 
 
 uruchom_algorytm(5)
