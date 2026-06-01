@@ -169,7 +169,7 @@ def policz_accuracy(predykcje, prawdziwe):
     return (suma / n) * 100
 
 
-def uruchom(x):
+def uruchom_algorytm(x):
     kros = kroswalidacja(australian, x)
     wszystkie_predykcje = []
     wszystkie_prawdziwe = []
@@ -202,4 +202,4 @@ def uruchom(x):
     macierz_pomylek(wszystkie_predykcje, wszystkie_prawdziwe)
 
 
-uruchom(6)
+uruchom_algorytm(6)
