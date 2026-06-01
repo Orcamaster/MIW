@@ -24,8 +24,6 @@ def kroswalidacja(zbior, f):
 
 
 def wybierz_systemy(podzial, test_index):
-    # test_index = indeks listy, która w danej iteracji będzie systemem testowym
-    # test_index to równocześnie numer iteracji programu
     sys_test = podzial[test_index]
     sys_tren = []
     for i in range(len(podzial)):
@@ -35,6 +33,27 @@ def wybierz_systemy(podzial, test_index):
             sys_tren.append(fold)
 
     return sys_test, sys_tren
+
+
+def macierz_pomylek(predykcje, prawdziwe):
+    n = len(predykcje)
+    tp = 0
+    fp = 0
+    fn = 0
+    tn = 0
+
+    for x in range(n):
+        if predykcje[x] == 1 and prawdziwe[x] == 1:
+            tp += 1
+        elif predykcje[x] == 1 and prawdziwe[x] == 0:
+            fp += 1
+        elif predykcje[x] == 0 and prawdziwe[x] == 1:
+            fn += 1
+        elif predykcje[x] == 0 and prawdziwe[x] == 0:
+            tn += 1
+
+    print(f'TP: {tp}, FP: {fp}')
+    print(f'FN: {fn}, TN: {tn}')
 
 
 def srednia(zbior):
@@ -119,6 +138,7 @@ def petla_uczenia(system, wagi, b, alfa):
 def predykuj_klasy(system, wagi, b):
     liczba_cech = len(system[0]) - 1
     predykowane_klasy = []
+    prawdziwe_klasy = []
 
     for obiekt in system:
         z = b
@@ -133,23 +153,26 @@ def predykuj_klasy(system, wagi, b):
         else:
             predykowane_klasy.append(0)
 
-    return predykowane_klasy
+        prawdziwe_klasy.append(obiekt[-1])
+
+    return predykowane_klasy, prawdziwe_klasy
 
 
-def policz_accuracy(system, predykcje):
-    liczba_obiektow = len(system)
+def policz_accuracy(predykcje, prawdziwe):
+    liczba_predykcji = len(predykcje)
     suma = 0
 
-    for x in range(liczba_obiektow):
-        if system[x][-1] == predykcje[x]:
+    for x in range(liczba_predykcji):
+        if predykcje[x] == prawdziwe[x]:
             suma += 1
 
-    return (suma / liczba_obiektow) * 100
+    return (suma / liczba_predykcji) * 100
 
 
 def uruchom(x):
     kros = kroswalidacja(australian, x)
-    total_accuracy = 0
+    wszystkie_predykcje = []
+    wszystkie_prawdziwe = []
 
     for iteracja in range(x):
         test, trening = wybierz_systemy(kros, iteracja)
@@ -166,13 +189,17 @@ def uruchom(x):
         for i in range(liczba_iteracji):
             petla_uczenia(przeskalowany_trening, wektor_wag, bias, learning_rate)
 
-        predykcje = predykuj_klasy(test, wektor_wag, bias)
-        accuracy = policz_accuracy(przeskalowany_test, predykcje)
-        total_accuracy += accuracy
+        predykcje, prawdziwe = predykuj_klasy(przeskalowany_test, wektor_wag, bias)
+        accuracy = policz_accuracy(predykcje, prawdziwe)
         print(f'{iteracja + 1}: {round(accuracy, 2)}%')
 
-    total_accuracy /= x
-    print(f'Total: {round(total_accuracy, 2)}%')
+        wszystkie_predykcje.extend(predykcje)
+        wszystkie_prawdziwe.extend(prawdziwe)
+
+    total_accuracy = policz_accuracy(wszystkie_predykcje, wszystkie_prawdziwe)
+    print(f'Total: {round(total_accuracy, 2)}%\n')
+
+    macierz_pomylek(wszystkie_predykcje, wszystkie_prawdziwe)
 
 
 uruchom(6)
