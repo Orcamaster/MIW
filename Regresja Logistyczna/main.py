@@ -159,14 +159,14 @@ def predykuj_klasy(system, wagi, b):
 
 
 def policz_accuracy(predykcje, prawdziwe):
-    liczba_predykcji = len(predykcje)
+    n = len(predykcje)
     suma = 0
 
-    for x in range(liczba_predykcji):
+    for x in range(n):
         if predykcje[x] == prawdziwe[x]:
             suma += 1
 
-    return (suma / liczba_predykcji) * 100
+    return (suma / n) * 100
 
 
 def uruchom(x):
