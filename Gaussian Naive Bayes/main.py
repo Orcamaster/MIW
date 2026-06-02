@@ -97,15 +97,22 @@ def policz_pc(sys):
 
 def policz_srednie_i_wariancje(sys):
     statystyki = {}
+
     for klasa, obiekt in sys.items():
+
+        if klasa not in statystyki:
+            statystyki[klasa] = []
+
         for i in range(4):
-            wartosci = [x[i] for x in obiekt]  # Lista wartości dla obecnego atrybutu
+            wartosci = []
+
+            for a in obiekt:
+                wartosci.append(a[i])
+
             sr = srednia(wartosci)
             war = wariancja(wartosci)
-
-            if klasa not in statystyki:
-                statystyki[klasa] = []
             statystyki[klasa].append((sr, war))
+
     return statystyki
 
 
@@ -120,21 +127,22 @@ def predykuj_klasy(sys, prawdopodobienstwa, statystyki):
     predykowane_klasy = []
     prawdziwe_klasy = []
 
-    for klasa_test in sys:  # Przejście przez klucze (klasy) do rozpakowania obiektów
-        for obiekt in sys[klasa_test]:  # Przejście przez wartości kluczy (obiekty)
-            wyniki = {}  # Klasy i ich sumy
+    for klasa_test in sys:
+
+        for obiekt in sys[klasa_test]:
+            wyniki = {}
 
             for klasa in prawdopodobienstwa:
                 suma = math.log(prawdopodobienstwa[klasa])  # ln(P(C))
-                stat = statystyki[klasa]  # Wczytanie statystyk aktualnej klasy
+                stat = statystyki[klasa]
 
                 for i in range(4):
                     sr, war = stat[i]
                     suma += math.log(policz_paic(obiekt[i], sr, war))
+
                 wyniki[klasa] = suma
 
             predykcja = max(wyniki, key=wyniki.get)
-
             predykowane_klasy.append(predykcja)
             prawdziwe_klasy.append(klasa_test)
 
