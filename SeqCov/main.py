@@ -12,80 +12,89 @@ with open("plik.txt", "r") as plik:
 
 
 def sequential_covering(system):
+    liczba_atrybutow = len(system[0]) - 1
+    niepokryte_obiekty = system.copy()
     reguly = {}
-    niepokryte = system.copy()
-    ilosc_atrybutow = len(system[0]) - 1
 
     atrybuty = []
-    for i in range(ilosc_atrybutow):
+    for i in range(liczba_atrybutow):
         atrybuty.append(f"A{i + 1}")
 
     rzad = 1
 
-    while len(niepokryte) > 0:
+    while len(niepokryte_obiekty) > 0:
         czy_reguly_w_rzedzie = False
 
         for kombinacja in combinations(atrybuty, rzad):
-            for obiekt in niepokryte:
-                decyzja_obiektu = obiekt["D"]
-                wartosci = {}
 
+            for obiekt in niepokryte_obiekty:
+                decyzja_obiektu = obiekt["D"]
+
+                wartosci = {}
                 for atrybut in kombinacja:
                     wartosci[atrybut] = obiekt[atrybut]
 
-                dopasowane = []
+                pasujace_obiekty = []
                 for inny_obiekt in system:
                     pasuje = True
+
                     for atrybut in kombinacja:
                         if inny_obiekt[atrybut] != wartosci[atrybut]:
                             pasuje = False
                             break
-                    if pasuje:
-                        dopasowane.append(inny_obiekt)
+
+                    if pasuje is True:
+                        pasujace_obiekty.append(inny_obiekt)
 
                 decyzje = set()
-                for o in dopasowane:
+                for o in pasujace_obiekty:
                     decyzje.add(o["D"])
 
                 if len(decyzje) == 1:
                     support = 0
-                    for o in dopasowane:
+                    for o in pasujace_obiekty:
                         if o["D"] == decyzja_obiektu:
                             support += 1
 
-                    tekst = tekst_reguly(kombinacja, wartosci, decyzja_obiektu)
+                    tekst = wypisz_regule(kombinacja, wartosci, decyzja_obiektu)
                     reguly[tekst] = support
                     czy_reguly_w_rzedzie = True
 
-                    pokryte = []
-                    for ob in niepokryte:
+                    pokryte_obiekty = []
+                    for ob in niepokryte_obiekty:
                         pasuje = True
+
                         for atrybut in kombinacja:
                             if ob[atrybut] != wartosci[atrybut]:
                                 pasuje = False
                                 break
-                        if pasuje:
-                            pokryte.append(ob)
 
-                    for ob in pokryte:
-                        niepokryte.remove(ob)
+                        if pasuje is True:
+                            pokryte_obiekty.append(ob)
+
+                    for ob in pokryte_obiekty:
+                        niepokryte_obiekty.remove(ob)
 
         if not czy_reguly_w_rzedzie:
             rzad += 1
-            if rzad > ilosc_atrybutow:
+            if rzad > liczba_atrybutow:
                 break
 
     return reguly
 
 
-def tekst_reguly(comb, wart, dec):
+def wypisz_regule(comb, wart, dec):
     tekst = "("
+
     for i in range(len(comb)):
         nazwa = comb[i]
-        tekst += f"{nazwa} = {wart[nazwa]}"
+        tekst += f'{nazwa} = {wart[nazwa]}'
+
         if i < len(comb) - 1:
             tekst += " ^ "
-    tekst += f") => (D = {dec})"
+
+    tekst += f') => (D = {dec})'
+
     return tekst
 
 
