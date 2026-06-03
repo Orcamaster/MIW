@@ -52,8 +52,8 @@ def macierz_pomylek(predykcje, prawdziwe):
         elif predykcje[x] == 0 and prawdziwe[x] == 0:
             tn += 1
 
-    print(f'TP: {tp}, FP: {fp}')
-    print(f'FN: {fn}, TN: {tn}')
+    print(f'TP: {tp:3} FP: {fp:3}')
+    print(f'FN: {fn:3} TN: {tn:3}')
 
 
 def srednia(zbior):
